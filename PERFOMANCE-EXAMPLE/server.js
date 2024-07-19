@@ -1,6 +1,6 @@
 const express = require("express");
-const cluster = require("cluster");
-const os = require("os");
+// const cluster = require("cluster");
+// const os = require("os");
 
 const app = express();
 
@@ -16,20 +16,20 @@ app.get("/", (req, res) => {
 });
 
 app.get("/timer", (req, res) => {
-  delay(9000);
-  res.send(`Ding Ding Done! ${process.pid}`);
+  delay(4000);
+  res.send(`Beep Beep Beep! ${process.pid}`);
 });
 
 console.log("Running Serve");
 
-if (cluster.isMaster) {
-  console.log("Master has been Started!!");
-  const NUM_WORKER = os.cpus().length;
+// if (cluster.isMaster) {
+//   console.log("Master has been Started!!");
+//   const NUM_WORKER = os.cpus().length;
 
-  for (let i = 0; i < NUM_WORKER; i++) {
-    cluster.fork();
-  }
-} else {
-  console.log("Worker process Started!!");
-  app.listen(3000);
-}
+//   for (let i = 0; i < NUM_WORKER; i++) {
+//     cluster.fork();
+//   }
+// } else {
+console.log("Worker process Started!!");
+app.listen(3000);
+// }
