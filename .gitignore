@@ -70,6 +70,7 @@ build/
 .demo/
 
 # Other files and directories
+.pem
 .DS_Store
 .env
 .env.test
