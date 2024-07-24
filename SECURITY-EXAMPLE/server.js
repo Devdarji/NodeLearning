@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const https = require("https");
 const express = require("express");
+const CookieSession = require("cookie-session");
 const http = require("http");
 
 const helmet = require("helmet");
@@ -11,23 +12,13 @@ const { Strategy } = require("passport-google-oauth20");
 require("dotenv").config();
 
 const PORT = 3000;
-const app = express();
 
 const CONFIG = {
   CLIENT_ID: process.env.CLIENT_ID,
   CLIENT_SECRET: process.env.CLIENT_SECRET,
+  COOKIE_SECRET_KEY1: process.env.COOKIE_SECRET_KEY1,
+  COOKIE_SECRET_KEY2: process.env.COOKIE_SECRET_KEY2,
 };
-
-function isLoggedIn(req, res, next) {
-  const isLoggedIn = true; // TODO
-
-  if (!isLoggedIn) {
-    return res.status(401).json({
-      error: "You Must Log In!",
-    });
-  }
-  next();
-}
 
 const AUTH_OPTIONS = {
   clientID: CONFIG.CLIENT_ID,
@@ -42,8 +33,40 @@ function verifyCallback(accessToken, refreshToken, profile, done) {
 
 passport.use(new Strategy(AUTH_OPTIONS, verifyCallback));
 
+// Save the session to the cookie
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+// Read the session from the cookie
+passport.deserializeUser((id, done) => {
+  done(null, id);
+});
+
+const app = express();
+
 app.use(helmet());
+app.use(
+  CookieSession({
+    name: "session",
+    maxAge: 24 * 60 * 60 * 1000,
+    keys: [CONFIG.COOKIE_SECRET_KEY1, CONFIG.COOKIE_SECRET_KEY2],
+  })
+);
 app.use(passport.initialize());
+app.use(passport.session());
+
+function checkLoggedIn(req, res, next) {
+  console.log("Current user is: ", req.user);
+  const isLoggedIn = req.isAuthenticated() && req.user; // TODO
+
+  if (!isLoggedIn) {
+    return res.status(401).json({
+      error: "You Must Log In!",
+    });
+  }
+  next();
+}
 
 app.get(
   "/auth/google",
@@ -57,16 +80,20 @@ app.get(
   passport.authenticate("google", {
     successRedirect: "/",
     failureRedirect: "/failure",
-    session: false,
+    session: true,
   }),
   (req, res) => {
     console.log("Google Call us Back!");
   }
 );
 
-app.get("/auth/logout", () => {});
+app.get("/auth/logout", (req, res) => {
+  req.logout();
 
-app.get("/secret", isLoggedIn, (req, res) => {
+  return res.redirect("/")
+});
+
+app.get("/secret", checkLoggedIn, (req, res) => {
   return res.send("Your personal value is 39!");
 });
 
